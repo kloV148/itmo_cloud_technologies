@@ -168,3 +168,136 @@ Dockerfile преобразуется в слой в конечном образ
 В ходе работы мы смогли написать два Dockerfile, в
 одном из которых мы показали плохие практики. При этом
 оба Dockerfile успешно запускались и функционировали.
+
+<h1 align="center">Задание со звёздочкой</h1>
+
+### Установка и настройка minikube
+
+Для выполнения работы будет использоваться minikube - инструмент, 
+позволяющий запустить кластер k8s на локальной машине. \
+Перед установкой minikube надо поставить 
+kubectl (инструмент для управления кластерами k8s). \
+`brew install kubectl` \
+Проверяем успешность установки вводом `kubectl` в терминал. 
+Установка прошла успешно 
+
+![установленный kubectl](./images/installed_kubectl.png)
+
+Далее с помощью комманды `alias k=kubectl` вместо полного названия 
+будет вводиться сокращение.\
+Установим minikube командой `brew install minikube`
+
+Запустим minikube командой `minikube start --driver=docker`. При 
+первом запуске надо указать driver. Был выбран docker, так 
+как только он поддерживается на используемой системе. 
+
+### Выгрузка образов в docker hub
+
+Для того, чтобы использовать созданные раннее образы 
+внутри подов, их надо выгрузить в docker hub. \
+Далее процесс будет описан только для образа, созданного на основе 
+Dockerfile без плохих практик. Для другого образа действия аналогичные.\
+Соберем образ командой `docker buildx build . -t django-good`.
+Далее создадим этому образу тэг с указанием имя пользователя на 
+Docker hub и репозитория командой 
+`docker tag django-good <username>/django-good` \
+Теперь надо выполнить команду `docker hub` и выполнить вход
+в аккаунт. 
+![вход в аккаунт docker hub](./images/docker_login.png)
+
+Теперь можем выгрузить образ командой `docker push <username>/django-good`
+![Выгрузка образа](./images/docker_push.png)
+
+Готово! Теперь образы готовы к использованию
+
+### Настройка Deployment и Service
+
+Ниже будут описаны действия для образа django-good. Для образа 
+django-bad действия аналогичные, кроме названий и самого образа. \
+Для создания подов с нужным контейнером внутри создадим файл
+deployment.yaml. Его содержание представлено ниже.
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: django-good-deployment
+  labels:
+    app: django-good
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: django-good
+  template:
+    metadata:
+      labels:
+        app: django-good
+    spec:
+      containers:
+        - image: klov148/django-good
+          name: django-good
+          ports:
+            - containerPort: 8000
+              name: gunicorn
+```
+Разберем некоторые строчки. \
+В строчке `kind: Deployment` мы указываем, что описываем именно
+Deployment. В строке `replicas: 3` мы задаем, сколько идентичных подов
+будет создано. Нужный docker образ указывается в строке 
+`image: klov148/django-bad`.\
+Применим deployment командой `k apply -f deployment.yaml`.
+Вывведем список подов командой `k get pods -o wide` и убедимся, 
+что все прошло успешно.
+![Проверка успешности применения deployment](./images/good_pods.png)
+
+Сейчас поды между собой связаны, но получить доступ из браузера к ним
+нельзя. Чтобы это исправить создадим service.yaml. Его код
+преставлин ниже
+```
+apiVersion: v1
+kind: Service
+metadata:
+  name: django-good
+  labels:
+    app: django-good
+spec:
+  type: NodePort
+  selector:
+    app: django-good
+  ports:
+    - port: 8000
+      targetPort: 8000
+```
+В строчке `type: NodePort` мы указали тип service. Именно этот тип нужен
+чтобы получить доступ к контейнерам из вне.\
+Применим service командой `k apply -f deployment.yaml`. Вызовем список
+service командой `k get svc` и убедимся, что всё прошло успешно 
+(на скриншоте есть так же другой аналогичный services, так как
+снимок экрана был сделан после выполнения всего задания). 
+![созданные service](./images/services.png)
+
+Проделаем аналогичный действия для второго образа.
+
+### Конечный результат
+
+Ниже представлен скриншот, на котором видно, что 
+было успешно создано два deployment, два service и 
+шесть подов (3 с одним образом и 3 с другим).
+
+![конечные результат](./images/all_res.png)
+
+Подключимся поочередно к первому и второму service. 
+
+![подключение к первому service](./images/good_connect.png)
+![первый service в браузере](./images/good_browser.png)
+
+![подключение ко второму service](./images/bad_connect.png)
+![второй service в браузере](./images/bad_browser.png)
+
+Как видим, все работает!
+
+## Итоги
+
+В данной лабораторой работе мы успешно запустили внутри
+minikube Dockerfile, написанные раннее. Так же нам удалось
+Получить к ним доступ из браузера.
