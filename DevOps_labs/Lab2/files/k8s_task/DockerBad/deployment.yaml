@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: django-bad-deployment
+  labels:
+    app: django-bad
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: django-bad
+  template:
+    metadata:
+      labels:
+        app: django-bad
+    spec:
+      containers:
+        - image: klov148/django-bad
+          name: django-bad
+          ports:
+            - containerPort: 8000
+              name: gunicorn

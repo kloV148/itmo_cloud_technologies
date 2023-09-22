@@ -15,6 +15,8 @@ RUN python3 -m pip install --no-cache-dir --no-warn-script-location --upgrade pi
 RUN python3 manage.py makemigrations
 RUN python3 manage.py migrate
 
-CMD ["gunicorn", "--bind", ":8000", "--workers", "3","Docker.wsgi"]
+CMD ["/bin/sh", "-c", "python3 -m gunicorn -b :8000 DockerBad.wsgi --reload"]
+
+#CMD ["gunicorn", "--bind", ":8000", "DockerBad.wsgi"]
 
 EXPOSE 8000

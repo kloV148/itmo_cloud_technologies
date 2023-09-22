@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: django-good-deployment
+  labels:
+    app: django-good
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: django-good
+  template:
+    metadata:
+      labels:
+        app: django-good
+    spec:
+      containers:
+        - image: klov148/django-good
+          name: django-good
+          ports:
+            - containerPort: 8000
+              name: gunicorn
