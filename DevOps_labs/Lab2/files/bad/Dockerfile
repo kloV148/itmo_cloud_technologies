@@ -4,8 +4,7 @@ MAINTAINER Yarilo Gusev  <yaroslav-gusev-00@mail.ru>
 
 RUN apt-get update && \
 	apt-get install -y python3 && \
-	apt-get install -y python3-pip && \
-	apt-get install -y gunicorn
+	apt-get install -y python3-pip &&
 
 WORKDIR /app/
 COPY . .
